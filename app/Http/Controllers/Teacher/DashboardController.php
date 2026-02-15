@@ -17,8 +17,7 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        // For now, we'll use static/demo data until we implement teacher-class relationships
-        // In a real system, teachers would be assigned to specific classes/grades
+        $currentTerm = $this->getCurrentTerm();
 
         $stats = [
             'total_students' => Student::count(),
@@ -27,6 +26,7 @@ class DashboardController extends Controller
             'recent_entries' => $this->getRecentEntries(),
             'classes' => $this->getTeacherClasses(),
             'performance_summary' => $this->getPerformanceSummary(),
+            'current_term' => $currentTerm,
         ];
 
         return view('teacher.dashboard', compact('stats'));
@@ -40,11 +40,9 @@ class DashboardController extends Controller
         $currentTerm = $this->getCurrentTerm();
         $currentYear = date('Y');
 
-        // Get total expected entries (students × subjects)
         $totalStudents = Student::count();
-        $totalSubjects = LearningArea::forGrade(7)->count(); // Assuming Grade 7 for now
+        $totalSubjects = LearningArea::count();
 
-        // Get actual entries made
         $entriesMade = AcademicRecord::where('term', $currentTerm)
             ->where('year', $currentYear)
             ->count();
@@ -66,8 +64,8 @@ class DashboardController extends Controller
             ->map(function ($record) {
                 return [
                     'id' => $record->id,
-                    'student_name' => $record->student->full_name ?? 'Unknown',
-                    'subject' => $record->learningArea->name ?? 'Unknown',
+                    'student_name' => $record->student ? $record->student->full_name : 'Unknown',
+                    'subject' => $record->learningArea ? $record->learningArea->name : 'Unknown',
                     'score' => $record->score,
                     'grade' => $this->convertToGrade($record->score),
                     'date' => $record->created_at->format('M d, Y'),
@@ -76,17 +74,20 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get teacher's classes (simplified for now)
+     * Get teacher's classes
      */
     private function getTeacherClasses()
     {
-        // In a real system, this would come from a teacher_class_assignments table
-        // For now, return sample data
-        return [
-            ['grade' => 7, 'class' => '7A', 'students' => Student::inGrade(7)->count()],
-            ['grade' => 8, 'class' => '8A', 'students' => Student::inGrade(8)->count()],
-            ['grade' => 9, 'class' => '9A', 'students' => Student::inGrade(9)->count()],
-        ];
+        // For now, return all grades 7-9 with student counts
+        $classes = [];
+        for ($grade = 7; $grade <= 9; $grade++) {
+            $classes[] = [
+                'grade' => $grade,
+                'class' => $grade . 'A',
+                'students' => Student::where('current_grade_level', $grade)->count(),
+            ];
+        }
+        return $classes;
     }
 
     /**
@@ -97,7 +98,7 @@ class DashboardController extends Controller
         $currentTerm = $this->getCurrentTerm();
         $currentYear = date('Y');
 
-        $subjects = LearningArea::forGrade(7)->take(4)->get();
+        $subjects = LearningArea::take(4)->get();
 
         $summary = [];
         foreach ($subjects as $subject) {
@@ -117,7 +118,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get current term using Term model
+     * Get current term
      */
     private function getCurrentTerm()
     {

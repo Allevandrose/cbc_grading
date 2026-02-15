@@ -94,7 +94,10 @@
                                         <span class="font-medium">Grade {{ $class['grade'] }} {{ $class['class'] }}</span>
                                         <span class="text-sm text-gray-600 ml-2">{{ $class['students'] }} students</span>
                                     </div>
-                                    <a href="#" class="text-blue-600 hover:text-blue-900 text-sm">Enter Marks →</a>
+                                    <a href="{{ route('teacher.marks.select') }}?grade={{ $class['grade'] }}" 
+                                       class="text-blue-600 hover:text-blue-900 text-sm">
+                                        Enter Marks →
+                                    </a>
                                 </div>
                             @empty
                                 <p class="text-gray-500">No classes assigned</p>
@@ -176,7 +179,7 @@
 
             <!-- Quick Actions -->
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="{{ route('teacher.marks.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-center transition">
+                <a href="{{ route('teacher.marks.select') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-center transition">
                     Enter New Marks
                 </a>
                 <a href="{{ route('teacher.marks.index') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-center transition">

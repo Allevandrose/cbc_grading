@@ -4,8 +4,8 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Marks Management') }}
             </h2>
-            <a href="#" onclick="event.preventDefault(); document.getElementById('filter-form').submit();" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Filter
+            <a href="{{ route('teacher.marks.select') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                + New Entry
             </a>
         </div>
     </x-slot>
@@ -15,13 +15,15 @@
             <!-- Filter Form -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="p-6">
-                    <form id="filter-form" method="GET" action="{{ route('teacher.marks.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <form method="GET" action="{{ route('teacher.marks.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Grade</label>
                             <select name="grade" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                                 <option value="">All Grades</option>
                                 @foreach($grades as $grade)
-                                    <option value="{{ $grade }}" {{ request('grade') == $grade ? 'selected' : '' }}>Grade {{ $grade }}</option>
+                                    <option value="{{ $grade->grade }}" {{ request('grade') == $grade->grade ? 'selected' : '' }}>
+                                        Grade {{ $grade->grade }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -30,7 +32,9 @@
                             <select name="subject" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                                 <option value="">All Subjects</option>
                                 @foreach($subjects as $subject)
-                                    <option value="{{ $subject->id }}" {{ request('subject') == $subject->id ? 'selected' : '' }}>{{ $subject->name }}</option>
+                                    <option value="{{ $subject->id }}" {{ request('subject') == $subject->id ? 'selected' : '' }}>
+                                        {{ $subject->name }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -39,14 +43,16 @@
                             <select name="term" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                                 <option value="">All Terms</option>
                                 @foreach($terms as $term)
-                                    <option value="{{ $term }}" {{ request('term') == $term ? 'selected' : '' }}>Term {{ $term }}</option>
+                                    <option value="{{ $term->term_number }}" {{ request('term') == $term->term_number ? 'selected' : '' }}>
+                                        {{ $term->name }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="flex items-end">
-                            <a href="{{ route('teacher.marks.create') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full text-center">
-                                + New Entry
-                            </a>
+                            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
+                                Filter
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -93,7 +99,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <a href="{{ route('teacher.marks.edit', $mark) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
-                                        <form action="{{ route('teacher.marks.destroy', $mark) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?');">
+                                        <form action="{{ route('teacher.marks.destroy', $mark) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this mark?');">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>

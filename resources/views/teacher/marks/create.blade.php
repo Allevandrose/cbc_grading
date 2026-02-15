@@ -17,49 +17,51 @@
 
                         <div class="mb-4">
                             <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4">
-                                <p>Enter marks for {{ count($students) }} students. Leave blank if not applicable.</p>
+                                <p>Enter marks for <strong>{{ count($students) }}</strong> students. Leave blank if not applicable.</p>
                             </div>
 
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admission No.</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student Name</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score (0-100)</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Existing</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    @foreach($students as $student)
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
                                         <tr>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ $student->admission_number }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {{ $student->full_name }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <input type="number" 
-                                                       name="marks[{{ $student->id }}]" 
-                                                       value="{{ old('marks.'.$student->id, $existingMarks[$student->id]->score ?? '') }}"
-                                                       class="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                                                       min="0" max="100" step="0.01">
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                @if(isset($existingMarks[$student->id]))
-                                                    <span class="text-green-600">Entered</span>
-                                                @else
-                                                    <span class="text-gray-400">New</span>
-                                                @endif
-                                            </td>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admission No.</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student Name</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score (0-100)</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        @foreach($students as $student)
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {{ $student->admission_number }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    {{ $student->full_name }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <input type="number" 
+                                                           name="marks[{{ $student->id }}]" 
+                                                           value="{{ old('marks.'.$student->id, $existingMarks[$student->id]->score ?? '') }}"
+                                                           class="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                                           min="0" max="100" step="0.01">
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    @if(isset($existingMarks[$student->id]))
+                                                        <span class="text-green-600 font-semibold">✓ Entered</span>
+                                                    @else
+                                                        <span class="text-gray-400">Pending</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
                         <div class="flex items-center justify-end mt-4">
-                            <a href="{{ route('teacher.marks.index') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2">
+                            <a href="{{ route('teacher.marks.select') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2">
                                 Cancel
                             </a>
                             <x-primary-button>

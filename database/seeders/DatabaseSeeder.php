@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             GradeLevelSeeder::class,  
             TermSeeder::class,
             LearningAreaSeeder::class,
+            StudentSeeder::class,
         ]);
 
         // User::factory(10)->create();

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\LearningArea;
 use App\Models\AcademicRecord;
+use App\Models\GradeLevel;
+use App\Models\Term;
 use Illuminate\Http\Request;
 
 class MarksController extends Controller
@@ -17,27 +19,36 @@ class MarksController extends Controller
     {
         $query = AcademicRecord::with(['student', 'learningArea']);
 
-        // Filter by grade
         if ($request->has('grade') && $request->grade != '') {
             $query->where('grade_level', $request->grade);
         }
 
-        // Filter by subject
         if ($request->has('subject') && $request->subject != '') {
             $query->where('learning_area_id', $request->subject);
         }
 
-        // Filter by term
         if ($request->has('term') && $request->term != '') {
             $query->where('term', $request->term);
         }
 
         $marks = $query->latest()->paginate(15);
         $subjects = LearningArea::all();
-        $grades = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-        $terms = [1, 2, 3];
+        $grades = GradeLevel::whereBetween('grade', [1, 9])->get();
+        $terms = Term::where('year', date('Y'))->get();
 
         return view('teacher.marks.index', compact('marks', 'subjects', 'grades', 'terms'));
+    }
+
+    /**
+     * Show form to select grade, subject, and term before entering marks.
+     */
+    public function select()
+    {
+        $grades = GradeLevel::whereBetween('grade', [1, 9])->get();
+        $subjects = LearningArea::all();
+        $terms = Term::where('year', date('Y'))->get();
+
+        return view('teacher.marks.select', compact('grades', 'subjects', 'terms'));
     }
 
     /**
@@ -51,7 +62,9 @@ class MarksController extends Controller
             'term' => 'required|integer|in:1,2,3',
         ]);
 
-        $students = Student::inGrade($request->grade)->active()->get();
+        $students = Student::where('current_grade_level', $request->grade)
+            ->where('is_active', true)
+            ->get();
         $subject = LearningArea::find($request->subject);
         $existingMarks = AcademicRecord::where('grade_level', $request->grade)
             ->where('learning_area_id', $request->subject)
@@ -80,7 +93,7 @@ class MarksController extends Controller
         $count = 0;
 
         foreach ($request->marks as $studentId => $score) {
-            if ($score !== null) {
+            if ($score !== null && $score !== '') {
                 AcademicRecord::updateOrCreate(
                     [
                         'student_id' => $studentId,
@@ -107,6 +120,7 @@ class MarksController extends Controller
      */
     public function edit(AcademicRecord $mark)
     {
+        $mark->load(['student', 'learningArea']);
         return view('teacher.marks.edit', compact('mark'));
     }
 
