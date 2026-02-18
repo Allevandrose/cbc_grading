@@ -7,25 +7,30 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // Call specific seeders
         $this->call([
+            // Core system seeders (in order of dependencies)
             RoleSeeder::class,
-            GradeLevelSeeder::class,  
+            GradeLevelSeeder::class,
+            AcademicYearSeeder::class,      // New
             TermSeeder::class,
             LearningAreaSeeder::class,
+            PathwayClusterSeeder::class,     // New
+            SubjectPathwayWeightSeeder::class, // New
+            AssessmentTypeSeeder::class,      // New
+            SchoolSettingSeeder::class,       // New
+            
+            // Data seeders
             StudentSeeder::class,
-        ]);
-
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            ClassArmSeeder::class,           // New
+            
+            // Teacher assignments (optional - can be done via UI)
+            // TeacherClassAssignmentSeeder::class,
+            // SubjectTeacherAssignmentSeeder::class,
+            
+            // Accountant seeders (optional)
+            // FeeStructureSeeder::class,
         ]);
     }
 }
