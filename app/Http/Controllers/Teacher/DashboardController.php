@@ -12,60 +12,57 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    /**
-     * Display the teacher dashboard.
-     */
     public function index()
     {
+        $teacher = Auth::user();
+        $myGradeIds = $teacher->my_grade_ids; // Uses accessor from User model
+        $mySubjectIds = $teacher->my_subject_ids; // Uses accessor from User model
+
         $currentTerm = $this->getCurrentTerm();
 
+        // Only count students in the teacher's assigned grades
+        $totalStudents = Student::whereIn('current_grade_level', $myGradeIds)->count();
+
+        // Only count subjects assigned to the teacher
+        $totalSubjects = $mySubjectIds->count();
+
+        // Calculate pending marks ONLY for the teacher's subjects and grades
+        $entriesMade = AcademicRecord::where('term', $currentTerm)
+            ->where('year', date('Y'))
+            ->whereIn('learning_area_id', $mySubjectIds)
+            ->whereHas('student', function ($q) use ($myGradeIds) {
+                $q->whereIn('current_grade_level', $myGradeIds);
+            })
+            ->count();
+
+        // Expected entries = (Students in my grades) * (My Subjects)
+        $expectedEntries = $totalStudents * $totalSubjects;
+
         $stats = [
-            'total_students' => Student::count(),
-            'total_subjects' => LearningArea::count(),
-            'pending_marks' => $this->getPendingMarksCount(),
-            'recent_entries' => $this->getRecentEntries(),
-            'classes' => $this->getTeacherClasses(),
-            'performance_summary' => $this->getPerformanceSummary(),
+            'total_students' => $totalStudents,
+            'total_subjects' => $totalSubjects,
+            'pending_marks' => max(0, $expectedEntries - $entriesMade),
+            'recent_entries' => $this->getRecentEntries($mySubjectIds),
+            'classes' => $this->getTeacherClasses($myGradeIds),
+            'performance_summary' => $this->getPerformanceSummary($mySubjectIds, $currentTerm),
             'current_term' => $currentTerm,
-            'recent_students' => $this->getRecentStudents(), // ADDED
+            'recent_students' => $this->getRecentStudents($myGradeIds),
         ];
 
         return view('teacher.dashboard', compact('stats'));
     }
 
-    /**
-     * Get pending marks count (marks not yet entered for current term)
-     */
-    private function getPendingMarksCount()
-    {
-        $currentTerm = $this->getCurrentTerm();
-        $currentYear = date('Y');
-
-        $totalStudents = Student::count();
-        $totalSubjects = LearningArea::count();
-
-        $entriesMade = AcademicRecord::where('term', $currentTerm)
-            ->where('year', $currentYear)
-            ->count();
-
-        $expectedEntries = $totalStudents * $totalSubjects;
-
-        return max(0, $expectedEntries - $entriesMade);
-    }
-
-    /**
-     * Get recent mark entries
-     */
-    private function getRecentEntries()
+    private function getRecentEntries($mySubjectIds)
     {
         return AcademicRecord::with(['student', 'learningArea'])
+            ->whereIn('learning_area_id', $mySubjectIds) // RESTRICTED
             ->latest()
             ->take(5)
             ->get()
             ->map(function ($record) {
                 return [
                     'id' => $record->id,
-                    'student_id' => $record->student ? $record->student->id : null, // ADDED
+                    'student_id' => $record->student ? $record->student->id : null,
                     'student_name' => $record->student ? $record->student->full_name : 'Unknown',
                     'subject' => $record->learningArea ? $record->learningArea->name : 'Unknown',
                     'score' => $record->score,
@@ -75,12 +72,10 @@ class DashboardController extends Controller
             });
     }
 
-    /**
-     * Get recent students for quick navigation
-     */
-    private function getRecentStudents()
+    private function getRecentStudents($myGradeIds)
     {
-        return Student::latest()
+        return Student::whereIn('current_grade_level', $myGradeIds) // RESTRICTED
+            ->latest()
             ->take(5)
             ->get()
             ->map(function ($student) {
@@ -92,32 +87,29 @@ class DashboardController extends Controller
             });
     }
 
-    /**
-     * Get teacher's classes
-     */
-    private function getTeacherClasses()
+    private function getTeacherClasses($myGradeIds)
     {
-        // For now, return all grades 7-9 with student counts
+        // Only return classes that are assigned to the teacher
         $classes = [];
-        for ($grade = 7; $grade <= 9; $grade++) {
+        // Fetch actual grade objects from IDs
+        $grades = \App\Models\GradeLevel::whereIn('id', $myGradeIds)->get();
+
+        foreach ($grades as $grade) {
+            $count = Student::where('current_grade_level', $grade->grade)->count();
             $classes[] = [
-                'grade' => $grade,
-                'class' => $grade . 'A',
-                'students' => Student::where('current_grade_level', $grade)->count(),
+                'grade' => $grade->grade,
+                'class' => $grade->grade . 'A', // Adjust logic if you have specific class names
+                'students' => $count,
             ];
         }
         return $classes;
     }
 
-    /**
-     * Get performance summary by subject
-     */
-    private function getPerformanceSummary()
+    private function getPerformanceSummary($mySubjectIds, $currentTerm)
     {
-        $currentTerm = $this->getCurrentTerm();
         $currentYear = date('Y');
-
-        $subjects = LearningArea::take(4)->get();
+        // Only get subjects assigned to teacher
+        $subjects = LearningArea::whereIn('id', $mySubjectIds)->get();
 
         $summary = [];
         foreach ($subjects as $subject) {
@@ -136,18 +128,12 @@ class DashboardController extends Controller
         return $summary;
     }
 
-    /**
-     * Get current term
-     */
     private function getCurrentTerm()
     {
         $currentTerm = Term::getCurrent();
         return $currentTerm ? $currentTerm->term_number : 1;
     }
 
-    /**
-     * Convert percentage to CBC grade
-     */
     private function convertToGrade($percentage)
     {
         return match (true) {
