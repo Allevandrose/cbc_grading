@@ -27,6 +27,7 @@ class DashboardController extends Controller
             'classes' => $this->getTeacherClasses(),
             'performance_summary' => $this->getPerformanceSummary(),
             'current_term' => $currentTerm,
+            'recent_students' => $this->getRecentStudents(), // ADDED
         ];
 
         return view('teacher.dashboard', compact('stats'));
@@ -64,11 +65,29 @@ class DashboardController extends Controller
             ->map(function ($record) {
                 return [
                     'id' => $record->id,
+                    'student_id' => $record->student ? $record->student->id : null, // ADDED
                     'student_name' => $record->student ? $record->student->full_name : 'Unknown',
                     'subject' => $record->learningArea ? $record->learningArea->name : 'Unknown',
                     'score' => $record->score,
                     'grade' => $this->convertToGrade($record->score),
                     'date' => $record->created_at->format('M d, Y'),
+                ];
+            });
+    }
+
+    /**
+     * Get recent students for quick navigation
+     */
+    private function getRecentStudents()
+    {
+        return Student::latest()
+            ->take(5)
+            ->get()
+            ->map(function ($student) {
+                return [
+                    'id' => $student->id,
+                    'name' => $student->full_name,
+                    'grade' => $student->current_grade_level,
                 ];
             });
     }

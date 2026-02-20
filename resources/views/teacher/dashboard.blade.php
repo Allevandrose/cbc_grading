@@ -112,13 +112,34 @@
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Subject Performance (Term {{ $stats['current_term'] ?? 1 }})</h3>
                         <div class="space-y-3">
                             @forelse($stats['performance_summary'] as $subject)
+                                @php
+                                    $average = $subject['average'];
+                                    $gradeColor = match(true) {
+                                        $average >= 75 => 'text-green-600 font-bold',
+                                        $average >= 58 => 'text-blue-600 font-bold',
+                                        $average >= 41 => 'text-blue-600',
+                                        $average >= 31 => 'text-yellow-600 font-bold',
+                                        $average >= 21 => 'text-yellow-600',
+                                        $average >= 11 => 'text-orange-600',
+                                        default => 'text-red-600',
+                                    };
+                                    $barColor = match(true) {
+                                        $average >= 75 => 'bg-green-500',
+                                        $average >= 58 => 'bg-blue-500',
+                                        $average >= 41 => 'bg-blue-400',
+                                        $average >= 31 => 'bg-yellow-500',
+                                        $average >= 21 => 'bg-yellow-400',
+                                        $average >= 11 => 'bg-orange-500',
+                                        default => 'bg-red-500',
+                                    };
+                                @endphp
                                 <div>
                                     <div class="flex justify-between text-sm mb-1">
                                         <span>{{ $subject['subject'] }}</span>
-                                        <span class="font-medium">{{ $subject['average'] }}% ({{ $subject['grade'] }})</span>
+                                        <span class="font-medium {{ $gradeColor }}">{{ $average }}% ({{ $subject['grade'] }})</span>
                                     </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2">
-                                        <div class="bg-blue-600 h-2 rounded-full" style="width: {{ $subject['average'] }}%"></div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div class="{{ $barColor }} h-2.5 rounded-full" style="width: {{ $average }}%"></div>
                                     </div>
                                 </div>
                             @empty
@@ -141,26 +162,38 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse($stats['recent_entries'] as $entry)
+                                    @php
+                                        $score = $entry['score'];
+                                        $gradeColor = match(true) {
+                                            $score >= 90 => 'bg-green-100 text-green-800 border border-green-300',
+                                            $score >= 75 => 'bg-green-50 text-green-700 border border-green-200',
+                                            $score >= 58 => 'bg-blue-100 text-blue-800 border border-blue-300',
+                                            $score >= 41 => 'bg-blue-50 text-blue-700 border border-blue-200',
+                                            $score >= 31 => 'bg-yellow-100 text-yellow-800 border border-yellow-300',
+                                            $score >= 21 => 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+                                            $score >= 11 => 'bg-orange-100 text-orange-800 border border-orange-300',
+                                            default => 'bg-red-100 text-red-800 border border-red-300',
+                                        };
+                                    @endphp
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $entry['student_name'] }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $entry['subject'] }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $entry['score'] }}%</td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                @if(in_array($entry['grade'], ['EE1', 'EE2'])) bg-green-100 text-green-800
-                                                @elseif(in_array($entry['grade'], ['ME1', 'ME2'])) bg-blue-100 text-blue-800
-                                                @elseif(in_array($entry['grade'], ['AE1', 'AE2'])) bg-yellow-100 text-yellow-800
-                                                @else bg-red-100 text-red-800
-                                                @endif">
+                                            <a href="{{ route('teacher.students.show', $entry['student_id']) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900 hover:underline">
+                                                {{ $entry['student_name'] }}
+                                            </a>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $entry['subject'] }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $entry['score'] }}%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ $gradeColor }}">
                                                 {{ $entry['grade'] }}
                                             </span>
                                         </td>
@@ -178,16 +211,53 @@
             </div>
 
             <!-- Quick Actions -->
-            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="{{ route('teacher.marks.select') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-center transition">
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <a href="{{ route('teacher.marks.select') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-center transition duration-150 ease-in-out transform hover:scale-105">
                     Enter New Marks
                 </a>
-                <a href="{{ route('teacher.marks.index') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-center transition">
+                <a href="{{ route('teacher.marks.index') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-center transition duration-150 ease-in-out transform hover:scale-105">
                     View All Marks
                 </a>
-                <a href="{{ route('teacher.reports.index') }}" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg text-center transition">
+                <a href="{{ route('teacher.students.index') }}" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg text-center transition duration-150 ease-in-out transform hover:scale-105">
+                    Manage Students
+                </a>
+                <a href="{{ route('teacher.reports.index') }}" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg text-center transition duration-150 ease-in-out transform hover:scale-105">
                     Generate Reports
                 </a>
+            </div>
+
+            <!-- Quick Links Section -->
+            <div class="mt-6 bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Navigation</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <a href="{{ route('teacher.students.index') }}" class="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                            <svg class="h-6 w-6 text-yellow-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                            <div>
+                                <span class="font-medium text-gray-900">All Students</span>
+                                <p class="text-sm text-gray-500">View and manage all students</p>
+                            </div>
+                        </a>
+                        
+                        <!-- Recent Students List (if available in stats) -->
+                        @if(isset($stats['recent_students']) && count($stats['recent_students']) > 0)
+                            <div class="md:col-span-2">
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">Recently Added Students:</h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    @foreach($stats['recent_students'] as $recentStudent)
+                                        <a href="{{ route('teacher.students.show', $recentStudent['id']) }}" 
+                                           class="flex items-center p-2 bg-gray-50 rounded hover:bg-gray-100 transition">
+                                            <span class="text-sm font-medium text-indigo-600">{{ $recentStudent['name'] }}</span>
+                                            <span class="ml-2 text-xs text-gray-500">(Grade {{ $recentStudent['grade'] }})</span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>
