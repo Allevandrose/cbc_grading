@@ -17,6 +17,18 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+
+            // --- PathCore System Columns ---
+            // Role Management: admin, teacher, accountant
+            $table->string('role')->default('teacher');
+
+            // Account Status: active or suspended
+            $table->boolean('is_active')->default(true);
+
+            // Onboarding: Tracks if the teacher completed their profile setup
+            $table->timestamp('onboarding_completed_at')->nullable();
+            // ------------------------------
+
             $table->rememberToken();
             $table->timestamps();
         });
