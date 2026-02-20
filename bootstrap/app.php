@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\RoleManager;
+use App\Http\Middleware\EnsureTeacherIsSetup;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,12 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Register middleware aliases
         $middleware->alias([
-            'role' => RoleManager::class,
+            'role'          => RoleManager::class,
+            'teacher.setup' => EnsureTeacherIsSetup::class,
         ]);
 
-        // Add middleware to web group
+        // Add middleware to the global web group if you want it to run on every request
         $middleware->web(append: [
-            // You can add custom web middleware here
+            // If you want EVERY teacher request to check setup automatically, 
+            // you can uncomment the line below. Otherwise, use it in routes/web.php
+            // EnsureTeacherIsSetup::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

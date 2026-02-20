@@ -32,8 +32,19 @@ class GradeLevel extends Model
         'is_active' => 'boolean',
     ];
 
+    // --- RELATIONSHIPS ---
+
+    /**
+     * Get the class arms (e.g., 7A, 7B) for this grade level.
+     */
+    public function classArms()
+    {
+        return $this->hasMany(ClassArm::class, 'grade_level_id');
+    }
+
     /**
      * Get the students in this grade level.
+     * Note: This links to the 'current_grade_level' integer (e.g., 7)
      */
     public function students()
     {
@@ -47,6 +58,8 @@ class GradeLevel extends Model
     {
         return $this->hasMany(AcademicRecord::class, 'grade_level', 'grade');
     }
+
+    // --- SCOPES ---
 
     /**
      * Scope a query to only include active grade levels.

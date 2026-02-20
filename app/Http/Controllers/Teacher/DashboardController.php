@@ -7,6 +7,8 @@ use App\Models\Student;
 use App\Models\LearningArea;
 use App\Models\AcademicRecord;
 use App\Models\Term;
+use App\Models\ClassArm;
+use App\Models\GradeLevel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,19 +16,23 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        /** @var \App\Models\User $teacher */
         $teacher = Auth::user();
-        $myGradeIds = $teacher->my_grade_ids; // Uses accessor from User model
-        $mySubjectIds = $teacher->my_subject_ids; // Uses accessor from User model
+
+        // Use the accessors defined in your User model
+        $myGradeIds = $teacher->my_grade_ids;
+        $myClassArmIds = $teacher->my_class_arm_ids; // Assuming this accessor exists for ClassArm IDs
+        $mySubjectIds = $teacher->my_subject_ids;
 
         $currentTerm = $this->getCurrentTerm();
 
-        // Only count students in the teacher's assigned grades
+        // Count students specifically in the teacher's assigned grades
         $totalStudents = Student::whereIn('current_grade_level', $myGradeIds)->count();
 
-        // Only count subjects assigned to the teacher
+        // Total subjects assigned
         $totalSubjects = $mySubjectIds->count();
 
-        // Calculate pending marks ONLY for the teacher's subjects and grades
+        // Calculate marks made
         $entriesMade = AcademicRecord::where('term', $currentTerm)
             ->where('year', date('Y'))
             ->whereIn('learning_area_id', $mySubjectIds)
@@ -39,76 +45,85 @@ class DashboardController extends Controller
         $expectedEntries = $totalStudents * $totalSubjects;
 
         $stats = [
-            'total_students' => $totalStudents,
-            'total_subjects' => $totalSubjects,
-            'pending_marks' => max(0, $expectedEntries - $entriesMade),
-            'recent_entries' => $this->getRecentEntries($mySubjectIds),
-            'classes' => $this->getTeacherClasses($myGradeIds),
+            'total_students'      => $totalStudents,
+            'total_subjects'      => $totalSubjects,
+            'pending_marks'       => max(0, $expectedEntries - $entriesMade),
+            'recent_entries'      => $this->getRecentEntries($mySubjectIds),
+            'classes'             => $this->getTeacherClasses($myClassArmIds),
             'performance_summary' => $this->getPerformanceSummary($mySubjectIds, $currentTerm),
-            'current_term' => $currentTerm,
-            'recent_students' => $this->getRecentStudents($myGradeIds),
+            'current_term'        => $currentTerm,
+            'recent_students'     => $this->getRecentStudents($myGradeIds),
         ];
 
         return view('teacher.dashboard', compact('stats'));
     }
 
+    /**
+     * Get specific class arms and student counts for the teacher.
+     */
+    private function getTeacherClasses($myClassArmIds)
+    {
+        // 1. Get the ClassArm objects for the IDs assigned to the teacher
+        $classArms = ClassArm::with('gradeLevel')->whereIn('id', $myClassArmIds)->get();
+
+        $classes = [];
+
+        foreach ($classArms as $arm) {
+            // 2. Count students specifically in this Class Arm
+            // We filter by the grade name/level AND the class arm name
+            $count = Student::where('current_grade_level', $arm->gradeLevel->grade)
+                ->where('current_class', $arm->name)
+                ->count();
+
+            $classes[] = [
+                'grade'    => $arm->gradeLevel->grade,
+                'class'    => $arm->name, // e.g., "7A"
+                'full_name' => $arm->gradeLevel->grade . ' ' . $arm->name, // e.g., "Grade 7 A"
+                'students' => $count,
+            ];
+        }
+
+        return $classes;
+    }
+
     private function getRecentEntries($mySubjectIds)
     {
         return AcademicRecord::with(['student', 'learningArea'])
-            ->whereIn('learning_area_id', $mySubjectIds) // RESTRICTED
+            ->whereIn('learning_area_id', $mySubjectIds)
             ->latest()
             ->take(5)
             ->get()
             ->map(function ($record) {
                 return [
-                    'id' => $record->id,
-                    'student_id' => $record->student ? $record->student->id : null,
-                    'student_name' => $record->student ? $record->student->full_name : 'Unknown',
-                    'subject' => $record->learningArea ? $record->learningArea->name : 'Unknown',
-                    'score' => $record->score,
-                    'grade' => $this->convertToGrade($record->score),
-                    'date' => $record->created_at->format('M d, Y'),
+                    'id'           => $record->id,
+                    'student_id'   => $record->student?->id,
+                    'student_name' => $record->student?->full_name ?? 'Unknown',
+                    'subject'      => $record->learningArea?->name ?? 'Unknown',
+                    'score'        => $record->score,
+                    'grade'        => $this->convertToGrade($record->score),
+                    'date'         => $record->created_at->format('M d, Y'),
                 ];
             });
     }
 
     private function getRecentStudents($myGradeIds)
     {
-        return Student::whereIn('current_grade_level', $myGradeIds) // RESTRICTED
+        return Student::whereIn('current_grade_level', $myGradeIds)
             ->latest()
             ->take(5)
             ->get()
             ->map(function ($student) {
                 return [
-                    'id' => $student->id,
-                    'name' => $student->full_name,
+                    'id'    => $student->id,
+                    'name'  => $student->full_name,
                     'grade' => $student->current_grade_level,
                 ];
             });
     }
 
-    private function getTeacherClasses($myGradeIds)
-    {
-        // Only return classes that are assigned to the teacher
-        $classes = [];
-        // Fetch actual grade objects from IDs
-        $grades = \App\Models\GradeLevel::whereIn('id', $myGradeIds)->get();
-
-        foreach ($grades as $grade) {
-            $count = Student::where('current_grade_level', $grade->grade)->count();
-            $classes[] = [
-                'grade' => $grade->grade,
-                'class' => $grade->grade . 'A', // Adjust logic if you have specific class names
-                'students' => $count,
-            ];
-        }
-        return $classes;
-    }
-
     private function getPerformanceSummary($mySubjectIds, $currentTerm)
     {
         $currentYear = date('Y');
-        // Only get subjects assigned to teacher
         $subjects = LearningArea::whereIn('id', $mySubjectIds)->get();
 
         $summary = [];
@@ -121,7 +136,7 @@ class DashboardController extends Controller
             $summary[] = [
                 'subject' => $subject->name,
                 'average' => round($avgScore ?? 0, 1),
-                'grade' => $this->convertToGrade($avgScore ?? 0),
+                'grade'   => $this->convertToGrade($avgScore ?? 0),
             ];
         }
 
@@ -130,7 +145,7 @@ class DashboardController extends Controller
 
     private function getCurrentTerm()
     {
-        $currentTerm = Term::getCurrent();
+        $currentTerm = Term::where('is_current', true)->first();
         return $currentTerm ? $currentTerm->term_number : 1;
     }
 
@@ -144,7 +159,7 @@ class DashboardController extends Controller
             $percentage >= 31 => 'AE1',
             $percentage >= 21 => 'AE2',
             $percentage >= 11 => 'BE1',
-            default => 'BE2',
+            default           => 'BE2',
         };
     }
 }
